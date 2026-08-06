@@ -1,5 +1,6 @@
 
 import { MathUtil } from '../Utils/MathUtil';
+import { ActorProperty } from './ActorProperty';
 import { StateDefine } from './StateDefine';
 import { _decorator, Component, Node, RigidBody, SkeletalAnimation, Collider, v3, CCFloat, Vec3 } from 'cc';
 const { ccclass, property } = _decorator;
@@ -23,6 +24,8 @@ export class Actor extends Component {
     collider: Collider = null;
 
     input: Vec3 = v3();
+
+    actorProperty: ActorProperty = new ActorProperty();
 
     start() {
         this.rigidbody = this.node.getComponent(RigidBody);

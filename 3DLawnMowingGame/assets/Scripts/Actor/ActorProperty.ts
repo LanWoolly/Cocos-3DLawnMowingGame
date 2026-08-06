@@ -1,14 +1,9 @@
-import { _decorator, Component, Node } from 'cc';
-const { ccclass, property } = _decorator;
+export class ActorProperty {
+    projectileCount: number = 1;
 
-@ccclass('ActorProperty')
-export class ActorProperty extends Component {
-    start() {
-
-    }
-
-    update(deltaTime: number) {
-        
-    }
+    peneration: number = 0;
+    chaseRate: number = 0;
+    maxHp: number = 100;
+    hp: number = this.maxHp;
 }
-
+
