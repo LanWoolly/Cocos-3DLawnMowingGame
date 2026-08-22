@@ -32,8 +32,8 @@ export class ProjectileEmitter extends Component {
             director.getScene().addChild(node);
         }
         let projectile = node.getComponent(Projectile);
-        node.once(Events.OnProjectileDead, this.onProjectileDead, this);
         node.active = true;
+        node.once(Events.OnProjectileDead, this.onProjectileDead, this);
         return projectile;
     }
 

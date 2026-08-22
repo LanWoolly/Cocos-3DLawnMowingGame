@@ -2,6 +2,8 @@ import { Pool, Prefab, resources, Node, randomRangeInt, instantiate, director, A
 import { Actor } from "../../Actor/Actor";
 import { Events } from "../../Events/Events";
 import { StateDefine } from "../../Actor/StateDefine";
+import { EffectManager } from "./EffectManager";
+import { ResourcesDefine } from "../../Resources/ResourcesDefine";
 
 export class ActorManager {
     static _instance: ActorManager;
@@ -26,9 +28,10 @@ export class ActorManager {
                 (): Node => {
                     let prefab = prefabs[randomRangeInt(0, prefabs.length)];
                     let node = instantiate(prefab);
-                    director.getScene().addChild(node);
+                    // director.getScene().addChild(node);
+                    node.active = false;
                     return node;
-                }, 10 * prefabs.length,
+                }, 10,
                 (node: Node) => {
                     node.removeFromParent();
                 }
@@ -46,7 +49,7 @@ export class ActorManager {
         let node = this.enemyPool.alloc();
         node.active = true;
         this.enemies.push(node);
-        node.on(Events.OnDie, this.OnEnemyDie, this);
+        node.once(Events.OnDie, this.OnEnemyDie, this);
         return node;
     }
 
@@ -61,7 +64,8 @@ export class ActorManager {
                     node.active = false;
                 }
 
-                //TODO:死亡动画
+                //死亡特效
+                EffectManager.instance.play(ResourcesDefine.EffDie, node.worldPosition);
             })
     }
 

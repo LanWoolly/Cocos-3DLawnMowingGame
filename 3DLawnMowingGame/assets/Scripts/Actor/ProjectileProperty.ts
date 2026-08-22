@@ -1,5 +1,5 @@
 export class ProjectileProperty {
-    lifeTime: number = 4.0;
+    lifeTime: number = 3.0;
     penetration: number = 0;
 }
 

@@ -57,7 +57,7 @@
       "name": "attack.animation",
       "userData": {
         "gltfIndex": 0,
-        "wrapMode": 1,
+        "wrapMode": 2,
         "sample": 30,
         "span": {
           "from": 2.3333333333333335,
@@ -253,7 +253,7 @@
             "name": "attack",
             "from": 2.3333333333333335,
             "to": 3.6666666666666665,
-            "wrapMode": 1,
+            "wrapMode": 2,
             "speed": 4,
             "previousId": "989ed"
           },
