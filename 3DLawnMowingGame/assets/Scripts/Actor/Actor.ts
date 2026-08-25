@@ -1,10 +1,10 @@
-
 import { Events } from '../Events/Events';
+import { DialogDef, UIManager } from '../UI/UIManager';
 import { MathUtil } from '../Utils/MathUtil';
 import { ActorProperty } from './ActorProperty';
 import { Projectile } from './Projectile';
 import { StateDefine } from './StateDefine';
-import { _decorator, Component, Node, RigidBody, SkeletalAnimation, Collider, v3, CCFloat, Vec3, math, ICollisionEvent, PhysicsSystem } from 'cc';
+import { _decorator, Component, Node, RigidBody, SkeletalAnimation, SkeletalAnimationState, Collider, v3, CCFloat, Vec3, math, ICollisionEvent, PhysicsSystem, Animation, director } from 'cc';
 const { ccclass, property } = _decorator;
 
 let tempVelocity = v3();
@@ -12,6 +12,8 @@ let tempVelocity = v3();
 @ccclass('Actor')
 export class Actor extends Component {
     currState: StateDefine | string = StateDefine.Idle;
+
+    isPlayer: boolean = false;
 
     @property(SkeletalAnimation)
     skeletalAnimation: SkeletalAnimation = null;
@@ -33,6 +35,10 @@ export class Actor extends Component {
         this.rigidbody = this.node.getComponent(RigidBody);
         this.collider = this.node.getComponent(Collider);
         this.collider.on('onTriggerEnter', this.onTriggerEnter, this);
+
+        if (this.skeletalAnimation) {
+            this.skeletalAnimation.on(Animation.EventType.FINISHED, this.onAnimFinished, this);
+        }
     }
 
     update(deltaTime: number) {
@@ -45,6 +51,15 @@ export class Actor extends Component {
                 // this.doRotate();
                 this.doMove();
                 break;
+        }
+    }
+
+    onDestroy() {
+        if (this.collider) {
+            this.collider.off('onTriggerEnter', this.onTriggerEnter, this);
+        }
+        if (this.skeletalAnimation) {
+            this.skeletalAnimation.off(Animation.EventType.FINISHED, this.onAnimFinished, this);
         }
     }
 
@@ -83,12 +98,6 @@ export class Actor extends Component {
             return;
         }
 
-        if (this.currState == StateDefine.Hit) {
-            if (destState != StateDefine.Die && destState != StateDefine.Hit) {
-                return;
-            }
-        }
-
         if (this.currState == StateDefine.Run) {
             this.stopMove();
         }
@@ -97,6 +106,23 @@ export class Actor extends Component {
         this.currState = destState;
     }
 
+    onAnimFinished(type: Animation.EventType, state: SkeletalAnimationState) {
+        if (this.currState == StateDefine.Die) {
+            return;
+        }
+
+        if (state.name == StateDefine.Hit) {
+            this.currState = StateDefine.Idle;
+            this.skeletalAnimation.crossFade(this.currState, 0.1);
+            //清除角速度，防止击退时残留的旋转
+            this.rigidbody.setAngularVelocity(Vec3.ZERO);
+        }
+
+        if (state.name == StateDefine.Attack) {
+            this.changeState(StateDefine.Idle);
+            return;
+        }
+    }
     respawn() {
         if (this.skeletalAnimation == null) {
             this.skeletalAnimation = this.node.children[0].getComponent(SkeletalAnimation);
@@ -120,17 +146,23 @@ export class Actor extends Component {
     }
 
     hurt(damage: number, hurtDirtion: Vec3, hurtSource: Actor) {
-
-        this.changeState(StateDefine.Hit);
-        this.node.emit(Events.OnHurt, this.actorProperty);
-
+        if (this.currState == StateDefine.Die) {
+            return;
+        }
         if (this.currState != StateDefine.Die) {
+
+            this.actorProperty.hp -= damage;
+            this.stopMove();
+            this.rigidbody.setAngularVelocity(Vec3.ZERO);
             hurtDirtion.multiplyScalar(2.0);
             this.rigidbody.applyImpulse(hurtDirtion);
-            this.actorProperty.hp -= damage;
+            this.node.emit(Events.OnHurt, this.actorProperty);
             if (this.actorProperty.hp <= 0) {
                 this.onDie();
                 hurtSource.node.emit(Events.OnKill, this);
+            } else {
+                this.changeState(StateDefine.Hit);
+
             }
         }
     }
@@ -140,6 +172,10 @@ export class Actor extends Component {
             return;
         }
         this.changeState(StateDefine.Die);
+        if (this.isPlayer) {
+            UIManager.instance.openDialog(DialogDef.UIDead);
+        }
+
         this.node.emit(Events.OnDie, this.node);
     }
 }

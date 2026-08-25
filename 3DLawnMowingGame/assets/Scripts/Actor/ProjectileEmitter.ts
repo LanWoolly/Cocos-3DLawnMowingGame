@@ -15,7 +15,7 @@ export class ProjectileEmitter extends Component {
             () => {
                 return instantiate(this.arrowPrefab);
             },
-            5,
+            10,
             (node: Node) => {
                 node.removeFromParent();
             }
@@ -34,6 +34,9 @@ export class ProjectileEmitter extends Component {
         let projectile = node.getComponent(Projectile);
         node.active = true;
         node.once(Events.OnProjectileDead, this.onProjectileDead, this);
+
+        //重置投射物状态
+        projectile.reset();
         return projectile;
     }
 

@@ -10,6 +10,14 @@ export enum Events {
     OnPlayerUpgrade = 'onPlayerUpgrade',
 
     OnExpGain = 'onExpGain',
+
+    OnFrameAttack = 'onFrameAttack',
+
+    OnFrameAttackLoose = 'onFrameAttackLoose',
+
+    OnBgmVolumeChanged = 'onBgmVolumeChanged',
+
+    OnSfxVolumeChanged = 'onSfxVolumeChanged',
 }
 
 

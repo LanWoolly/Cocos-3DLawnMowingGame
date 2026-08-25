@@ -346,8 +346,9 @@
       "__id__": 23
     },
     "attackRange": 0.5,
-    "attackInterval": 5,
+    "attackInterval": 1,
     "career": 0,
+    "projectileStartNode": null,
     "_id": ""
   },
   {

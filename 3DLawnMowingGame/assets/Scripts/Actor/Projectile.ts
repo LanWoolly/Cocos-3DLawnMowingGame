@@ -28,15 +28,21 @@ export class Projectile extends Component {
 
     startTime: number = 0;
 
+    private _dead: boolean = false;
+
     start() {
         this.collider = this.node.getComponent(Collider);
         this.collider.on("onTriggerEnter", this.onTriggerEnter, this);
     }
 
     update(deltaTime: number) {
+        if (this._dead) {
+            return;
+        }
         this.startTime += deltaTime;
         if (this.startTime > this.projectileProperty.lifeTime) {
-            this.node.emit(Events.OnProjectileDead, this);
+            this.die();
+            // this.node.emit(Events.OnProjectileDead, this);
             return;
         }
 
@@ -55,17 +61,36 @@ export class Projectile extends Component {
     }
 
     onDestroy() {
-
+if (this.collider) {
+    this.collider.off("onTriggerEnter", this.onTriggerEnter, this);
+}
     }
 
     onTriggerEnter(event: ICollisionEvent) {
+        if (this._dead) {
+            return;
+        }
         this.projectileProperty.penetration--;
         if (this.projectileProperty.penetration <= 0) {
-            this.node.emit(Events.OnProjectileDead, this);
+            this.die();
         }
 
         EffectManager.instance.play(ResourcesDefine.EffExplore, event.otherCollider.node.worldPosition);
         AudioManager.instance.playHitSfx();
+    }
+
+    die() {
+        if (this._dead) {
+            return;
+        }
+        this._dead = true;
+        this.node.emit(Events.OnProjectileDead, this);
+    }
+
+    reset(){
+        this.startTime = 0;
+        this.target = null;
+        this._dead = false;
     }
 }
 

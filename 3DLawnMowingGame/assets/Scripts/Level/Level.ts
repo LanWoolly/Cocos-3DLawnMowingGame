@@ -3,6 +3,7 @@ import { ActorManager } from './Manager/ActorManager';
 import { Actor } from '../Actor/Actor';
 import { EffectManager } from './Manager/EffectManager';
 import { AudioManager } from './Manager/AudioManager';
+import { UIManager } from '../UI/UIManager';
 const { ccclass, property } = _decorator;
 
 @ccclass('Level')
@@ -54,11 +55,12 @@ export class Level extends Component {
 
     }
 
-    onDestory() {
+    onDestroy() {
         Level._instance = null;
         ActorManager.instance.destory();
         EffectManager.instance.destory();
-        AudioManager.instance.destroy();
+        AudioManager.instance.cleanUp();
+        UIManager.instance.cleanUp();
         this.unscheduleAllCallbacks();
     }
 

@@ -14,10 +14,6 @@ export class UIImageLabel extends Component {
 
     private _string: string = '';
 
-    get string(): string {
-        return this._string;
-    }
-
     set string(val: string) {
         if (this._string == val)
             return;
@@ -25,20 +21,21 @@ export class UIImageLabel extends Component {
         this.resetString();
     }
 
+    get string(): string {
+        return this._string;
+    }
+
     start() {
         this.layout = this.node.getComponent(Layout);
+
         this.numberPool = new Pool<Node>((): Node => {
             let node = instantiate(this.numberPrefab);
             this.node.addChild(node);
             node.active = false;
             return node;
-        }, 5, (node: Node) => {
+        }, 1, (node: Node) => {
             node.removeFromParent();
         })
-    }
-
-    update(deltaTime: number) {
-
     }
 
     protected onDestroy(): void {
@@ -48,22 +45,24 @@ export class UIImageLabel extends Component {
     resetString() {
         this.clearString();
 
-        let dir = "UI/art/num";
+        let dir = "UI/art/num/";
         resources.loadDir(dir, () => {
             for (let i = 0; i < this.string.length; i++) {
                 const char = this.string[i];
+
                 let str = char.toString();
                 if (replace.has(str)) {
                     str = replace.get(str);
                 }
-                let path = dir + str + "/spriteFrame";
+
+                const path = dir + str + "/spriteFrame";
                 const spriteFrame = resources.get(path, SpriteFrame);
 
                 let spriteNode = this.numberPool.alloc();
-                let sprite = spriteNode.getComponent(Sprite);
-                sprite.spriteFrame = spriteFrame;
                 spriteNode.active = true;
                 spriteNode.setSiblingIndex(i);
+                let sprite = spriteNode.getComponent(Sprite);
+                sprite.spriteFrame = spriteFrame;
             }
             this.layout.updateLayout();
         })
@@ -71,8 +70,8 @@ export class UIImageLabel extends Component {
 
     clearString() {
         for (let child of this.node.children) {
-            this.numberPool.free(child);
             child.active = false;
+            this.numberPool.free(child);
         }
     }
 }

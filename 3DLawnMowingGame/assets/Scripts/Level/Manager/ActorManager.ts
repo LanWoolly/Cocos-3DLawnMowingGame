@@ -42,7 +42,9 @@ export class ActorManager {
 
     destory() {
         this.enemyPool.destroy();
+        this.enemyPool = null;
         this.enemies = [];
+        ActorManager._instance = null;
     }
 
     createEnemy(): Node {
@@ -70,6 +72,9 @@ export class ActorManager {
     }
 
     get randomEnemy() {
+           if (!this.enemies || this.enemies.length == 0) {
+            return null;
+        }
         return this.enemies[randomRangeInt(0, this.enemies.length)];
     }
 }

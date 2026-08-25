@@ -3,6 +3,7 @@ import { ActorManager } from '../Level/Manager/ActorManager';
 import { StateDefine } from './StateDefine';
 import { Actor } from './Actor';
 import { ProjectileEmitter } from './ProjectileEmitter';
+import { Events } from '../Events/Events';
 const { ccclass, property, requireComponent } = _decorator;
 
 export enum Career {
@@ -36,15 +37,15 @@ export class EnemyManager extends Component {
 
     start() {
         this.actor = this.node.getComponent(Actor);
-        this.node.on("onFrameAttack", this.onFrameAttack, this);
-        this.schedule(this.executeAI, 2.0, macro.REPEAT_FOREVER, 1.0);
+        this.node.on(Events.OnFrameAttack, this.onFrameAttack, this);
+        this.schedule(this.executeAI, 0.5, macro.REPEAT_FOREVER, 1.0);
         if (this.career == Career.Range) {
             this.projectileEmitter = this.node.getComponent(ProjectileEmitter);
         }
     }
 
-    update(deltaTime: number) {
-
+    onDestroy() {
+        this.node.off(Events.OnFrameAttack, this.onFrameAttack, this);
     }
 
     executeAI() {
@@ -55,6 +56,17 @@ export class EnemyManager extends Component {
             return;
         if (this.actor.currState == StateDefine.Hit || this.actor.currState == StateDefine.Die)
             return;
+        // 不处于 Run/Idle 状态
+        if (this.actor.currState != StateDefine.Idle && this.actor.currState != StateDefine.Run) {
+            return;
+        }
+
+        const canAttack = game.totalTime - this.lastAttackTime >= this.attackInterval;
+        // 目标已死或不能攻击
+        if (target.currState == StateDefine.Die || !canAttack) {
+            this.actor.changeState(StateDefine.Idle);
+            return;
+        }
 
         const distance = Vec3.distance(this.node.worldPosition, target.node.worldPosition);
 
@@ -63,7 +75,6 @@ export class EnemyManager extends Component {
         this.actor.input.y = 0;
 
         if (distance > this.attackRange) {
-
             this.actor.changeState(StateDefine.Run);
             return;
         }
@@ -109,7 +120,6 @@ export class EnemyManager extends Component {
             projectile.node.worldPosition = this.projectileStartNode.worldPosition;
             projectile.host = this.node;
             projectile.node.forward = hurtDirection;
-            projectile.startTime = 0;
         }
     }
 }

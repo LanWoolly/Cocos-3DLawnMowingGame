@@ -31,17 +31,25 @@ export class PlayerController extends Component {
     shootDirection: Vec3 = v3();
 
     private _splitAngle: number[] = [0];
-    private _fireTimer: number = 0;
+    private _currentTarget: Node = null;
+
+    onLoad() {
+        this.actor = this.node.getComponent(Actor);
+        this.actor.isPlayer = true;
+        ActorManager.instance.playActor = this.actor;
+    }
 
     start() {
-        this.actor = this.node.getComponent(Actor);
-        ActorManager.instance.playActor = this.actor;
         this.projectileEmitter = this.node.getComponent(ProjectileEmitter);
         this.node.on(Events.OnKill, this.onKill, this);
-        // this.node.on("onFrameAttackLoose", this.onFrameAttackLoose, this);
+        this.node.on(Events.OnFrameAttackLoose, this.onFrameAttackLoose, this);
     }
 
     update(deltaTime: number) {
+        // 场景切换过程中本组件可能被销毁，防止残留帧调用时报错
+        if (!this.isValid || !this.actor || !this.actor.isValid) {
+            return;
+        }
         if (this.actor.currState == StateDefine.Die || this.actor.currState == StateDefine.Hit) {
             return;
         }
@@ -52,30 +60,26 @@ export class PlayerController extends Component {
 
         if (len > 0.1) {
             this.actor.changeState(StateDefine.Run);
-            this._fireTimer = 0;
         } else {
             //     //有敌人：攻击；没有敌人：空闲
             let enemy = this.getNearEnemy();
             if (enemy == null) {
                 this.actor.changeState(StateDefine.Idle);
-                this._fireTimer = 0;
             } else {
                 Vec3.subtract(this.actor.input, enemy.worldPosition, this.node.worldPosition);
                 this.actor.input.y = 0;
                 this.actor.input.normalize();
 
                 this.actor.changeState(StateDefine.Attack);
-                this._fireTimer += deltaTime;
-                if (this._fireTimer >= this.fireInterval) {
-                    this._fireTimer = 0;
-                    this.onFrameAttackLoose(enemy);
-                }
+                this._currentTarget = enemy;
             }
         }
     }
 
     onDestroy() {
         ActorManager.instance.playActor = null;
+        this.node.off(Events.OnKill, this.onKill, this);
+        this.node.off(Events.OnFrameAttackLoose, this.onFrameAttackLoose, this);
     }
 
     handleInput(): number {
@@ -89,19 +93,34 @@ export class PlayerController extends Component {
         return this.actor.input.length();
     }
 
-    onFrameAttackLoose(target: Node) {
+    onFrameAttackLoose() {
+        let target = this._currentTarget;
+        if (!this.isTargetValid(target)) {
+            target = this.getNearEnemy();
+            this._currentTarget = target;
+        }
+        if (target == null) {
+            return;
+        }
+
+        // const distance = Vec3.distance(this.node.worldPosition, target.worldPosition);
+        // if (distance > this.detectRadius) {
+        //     return;
+        // }
+        // const targetActor = target.getComponent(Actor);
+        // if (targetActor && targetActor.currState == StateDefine.Die) {
+        //     return;
+        // }
+
         //发射箭矢
         const arrowStartPos = this.bowString.worldPosition;
-        // Vec3.subtract(this.shootDirection,this.bowString.worldPosition,arrowStartPos)
 
         Vec3.subtract(this.shootDirection, target.worldPosition, arrowStartPos);
         this.shootDirection.y = 0;
         this.shootDirection.normalize();
-        this.shootDirection.normalize();
 
         for (let i = 0; i < this.actor.actorProperty.projectileCount; i++) {
             let projectile = this.projectileEmitter.create();
-            // MathUtil.rotateAround(arrowForward, this.node.forward, Vec3.UP, this._splitAngle[i]);
             MathUtil.rotateAround(arrowForward, this.shootDirection, Vec3.UP, this._splitAngle[i]);
 
             projectile.node.forward = arrowForward.clone();
@@ -109,6 +128,24 @@ export class PlayerController extends Component {
             projectile.host = this.node;
         }
         AudioManager.instance.playShootSfx();
+    }
+
+    /**
+       * 集中校验目标是否仍为有效攻击对象
+       */
+    private isTargetValid(target: Node): boolean {
+        if (target == null || !target.isValid || !target.activeInHierarchy) {
+            return false;
+        }
+        const distance = Vec3.distance(this.node.worldPosition, target.worldPosition);
+        if (distance > this.detectRadius) {
+            return false;
+        }
+        const targetActor = target.getComponent(Actor);
+        if (targetActor && targetActor.currState == StateDefine.Die) {
+            return false;
+        }
+        return true;
     }
 
     set projectileCount(count: number) {
@@ -138,9 +175,9 @@ export class PlayerController extends Component {
         for (let enemy of enemies) {
             const actor = enemy.getComponent(Actor);
 
-            // if (actor.dead) {
-            //     continue;
-            // }
+            if (actor && actor.currState == StateDefine.Die) {
+                continue;
+            }
             let distance = Vec3.distance(this.node.worldPosition, enemy.worldPosition);
             if (distance < minDistance) {
                 minDistance = distance;
@@ -153,13 +190,13 @@ export class PlayerController extends Component {
     onKill() {
         let property = this.actor.actorProperty;
         property.exp++;
+        this.node.emit(Events.OnExpGain, property.exp, property.maxExp);
         if (property.exp >= property.maxExp) {
             property.exp = 0;
-            property.maxExp *= 1.2;
+            property.maxExp *= 1.5;
             property.level++;
             this.node.emit(Events.OnPlayerUpgrade, property.level);
         }
-        this.node.emit(Events.OnExpGain, property.exp, property.maxExp);
     }
 }
 
